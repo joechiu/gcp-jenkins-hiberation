@@ -1,0 +1,62 @@
+---
+# Example Playbook
+- name: Compute Engine Instance Examples
+  hosts: localhost
+  vars_files:
+    - /opt/vars/gcp-vars.yml
+  tasks:
+    - name: create multiple instances
+      # Basic provisioning example.  Create multiple Debian 8 instances in the
+      # us-central1-a Zone of n1-standard-1 machine type.
+      gce:
+        instance_names: "{{ vms | join(',') }}"
+        zone: australia-southeast1-b
+        machine_type: n1-standard-1
+        image: centos-7
+        state: present
+        service_account_email: "{{ service_account_email }}"
+        credentials_file: "{{ credentials_file }}"
+        project_id: "{{ project_id }}"
+        metadata : '{ "startup-script" : "yum update" }'
+      register: gce
+
+    - name: Save host data
+      add_host:
+        hostname: "{{ item.public_ip }}"
+        groupname: gce_instances_ips
+      with_items: "{{ gce.instance_data }}"
+
+    - name: Wait for SSH for instances
+      wait_for:
+        delay: 1
+        host: "{{ item.public_ip }}"
+        port: 22
+        state: started
+        timeout: 30
+      with_items: "{{ gce.instance_data }}"
+
+    - name: Display the instances info
+      debug:
+        msg: "{{ item }}"
+      loop: "{{ gce.instance_data }}"
+
+    - name: check if exists ssh config
+      shell: |
+        [ -d ~/.ssh ] || mkdir ~/.ssh
+        [ -e {{ config }} ] || touch {{ config }}
+
+    - name: Insert vms to ssh config
+      blockinfile:
+        dest: "{{ config }}"
+        marker: "# {mark} {{ item.0 }} ansible"
+        block: |
+          Host {{ item.0 }}
+          User joehmchiu
+          StrictHostKeyChecking no
+          IdentityFile /opt/vars/foo
+          Hostname {{ item.1.public_ip }}
+          Port 22
+      with_together:
+        - "{{ vms }}"
+        - "{{ gce.instance_data }}"
+

@@ -1,0 +1,17 @@
+# Example Playbook
+- name: Compute Engine Instance Examples
+  hosts: localhost
+  vars_files:
+    - /opt/vars/gcp-vars.yml
+  tasks:
+    - name: stop test-instances
+      # Basic termination of instance.
+      gce:
+        service_account_email: "{{ service_account_email }}"
+        credentials_file: "{{ credentials_file }}"
+        project_id: "{{ project_id }}"
+        instance_names: "{{ vms | join(',') }}"
+        zone: australia-southeast1-b
+        state: stopped
+      tags:
+        - stop

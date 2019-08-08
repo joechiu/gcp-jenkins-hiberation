@@ -1,0 +1,11 @@
+---
+# vars for gcp
+vms: 
+  - test1
+  - test2
+  - test3
+service_account_email: "service_account_email"
+credentials_file: "/path/vars/credentials.json"
+project_id: "project_id"
+config: "/path/.ssh/config"
+sshkey: "/path/vars/foo"

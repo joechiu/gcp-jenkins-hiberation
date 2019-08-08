@@ -1,0 +1,10 @@
+project = "cloud-platforms"
+script = "start-vms.yml"
+task = "gcp"
+repositoryUrl = "https://github.com/joehmchiu/${project}.git"
+branch = "master"
+msg = "VMs powered on"
+
+node {
+    load "/opt/bin/jenkins-run.groovy"
+}

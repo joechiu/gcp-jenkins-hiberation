@@ -1,0 +1,45 @@
+---
+- hosts: localhost
+  become: yes
+  vars:
+    csvdir: "{{env}}csv"
+  tasks:
+    - name: create or clean the local csv
+      shell: |
+        [ -d {{csvdir}} ] || mkdir {{csvdir}}
+        [ -d {{csvdir}} ] && rm -rf {{csvdir}}/*
+
+- hosts: vm
+  become: yes
+  vars:
+    path: "{{playbook_dir}}"
+    script: bin/raw-csv.pl
+    file: "/tmp/server-raw-crt-list.txt"
+    csvdir: "{{env}}csv"
+  tasks:
+    - name: set ip address
+      set_fact:
+        ip: "{{hostvars[inventory_hostname]['ansible_default_ipv4']['address']}}"
+
+    - name: get hostname
+      command: hostname
+      register: get_hostname
+
+    - name: set hostname
+      set_fact:
+        hostname: "{{get_hostname.stdout}}"
+        csvfile: "/tmp/{{get_hostname.stdout}}_{{ip}}.csv"
+
+    - name: dump the cert files
+      shell: |
+        log={{ file }}; rm $log; for i in `find / -name '*.crt' | grep -v mozi | grep -v example | grep -v proc`; do echo "------ $i ------" >> $log; openssl x509 -noout -issuer -subject -dates -in $i >> $log; echo >> $log; done
+
+    - name: run script...
+      script: "{{path}}/{{script}} {{file}} > {{csvfile}}"
+
+    - name: fetch file from remote
+      fetch:
+        src: "{{csvfile}}"
+        dest: "{{path}}/{{csvdir}}/"
+        flat: yes
+
